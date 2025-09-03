@@ -1,5 +1,5 @@
 # streamlit_app.py
-import os
+import os, io, requests
 from PIL import Image
 import streamlit as st
 from huggingface_hub import hf_hub_download
@@ -17,7 +17,11 @@ with st.sidebar:
     ckpt_file = st.text_input("HF filename", value="best_state_dict_only.pth")
     downsample = st.slider("downsample (mesmo do treino)", 1, 8, value=2, step=1)
     make_overlay = st.checkbox("Gerar imagem anotada (heatmap)", value=True)
-
+    max_side = st.number_input(
+        "Pré-redimensionar imagens (px, maior lado)", min_value=512, max_value=4096, value=1280, step=64,
+        help="Acelera a inferência em CPU reduzindo a resolução de entrada."
+    )
+    
 @st.cache_resource(show_spinner=True)
 def load_model_cached(repo_id: str, ckpt_file: str):
     """
@@ -66,6 +70,13 @@ if st.button("Rodar Predição", type="primary"):
         total = 0.0
 
         for name, img in zip(names, images):
+            # Pré-resize opcional para acelerar CPU
+            if max_side:
+                w, h = img.size
+                scale = min(1.0, float(max_side) / max(w, h))
+                if scale < 1.0:
+                    img = img.resize((int(round(w * scale)), int(round(h * scale))), Image.BILINEAR)
+
             try:
                 count, overlay_img = infer_image_pil(
                     image=img,
