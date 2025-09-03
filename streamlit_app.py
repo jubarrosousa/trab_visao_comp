@@ -7,8 +7,8 @@ from huggingface_hub import hf_hub_download
 # importa do seu módulo
 from model import load_model, infer_image_pil
 
-st.set_page_config(page_title="Contagem de Bolinhas", layout="wide")
-st.title("Contagem de Bolinhas na Pele")
+st.set_page_config(page_title="Contagem de Neurofibromas", layout="wide")
+st.title("Contagem de Neurofibromas na Pele")
 
 # ======================== Sidebar (config) ========================
 with st.sidebar:
@@ -21,8 +21,7 @@ with st.sidebar:
         "Pré-redimensionar imagens (px, maior lado)", min_value=512, max_value=4096, value=1280, step=64,
         help="Acelera a inferência em CPU reduzindo a resolução de entrada."
     )
-    st.caption("Se o repo do HF for privado, adicione **HF_TOKEN** em Settings → Secrets.")
-
+    
 @st.cache_resource(show_spinner=True)
 def load_model_cached(repo_id: str, ckpt_file: str):
     """
@@ -127,4 +126,4 @@ if st.button("Rodar Predição", type="primary"):
         cols = st.columns(3)
         for i, (name, im) in enumerate(annotated):
             with cols[i % 3]:
-                st.image(im, caption=name, use_column_width=True)
+                st.image(im, caption=name, use_container_width=True)
