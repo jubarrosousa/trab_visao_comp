@@ -7,7 +7,7 @@ import streamlit as st
 from huggingface_hub import hf_hub_download
 
 # seu módulo com o modelo/inferência
-from your_model import load_model, infer_image_pil
+from model import load_model, infer_image_pil
 
 st.set_page_config(page_title="Contagem de Neurofibromas", layout="wide")
 st.title("Contagem de Neurofibromas na Pele")
