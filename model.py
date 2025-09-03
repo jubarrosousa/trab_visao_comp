@@ -183,7 +183,7 @@ def infer_image_pil(
             pred, size=(newH // downsample, newW // downsample),
             mode="bilinear", align_corners=False
         )
-        count = float(pred.sum().cpu().item())
+        count = float(pred.sum().cpu().item()) * 0.1
 
     overlay_img = None
     if return_overlay:
