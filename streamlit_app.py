@@ -33,18 +33,11 @@ def load_model_cached(repo_id: str, ckpt_file: str):
     model, device = load_model(ckpt_path, device="cpu")  # Streamlit Cloud roda em CPU
     return model, device, ckpt_path
 
-def fetch_url_image(url: str) -> Image.Image:
-    r = requests.get(url, timeout=12)
-    r.raise_for_status()
-    return Image.open(io.BytesIO(r.content)).convert("RGB")
-
 # ======================== Entradas ========================
-st.markdown("Envie **uma ou mais imagens** ou cole **URLs** (uma por linha).")
+st.markdown("Envie **uma ou mais imagens**.")
 uploads = st.file_uploader(
     "Upload de imagens", type=["png","jpg","jpeg","bmp","webp","tiff"], accept_multiple_files=True
 )
-urls_text = st.text_area("URLs (opcional)", height=80,
-                         placeholder="https://exemplo.com/img1.jpg\nhttps://exemplo.com/img2.png")
 
 # ======================== Botão principal ========================
 if st.button("Rodar Predição", type="primary"):
@@ -58,19 +51,6 @@ if st.button("Rodar Predição", type="primary"):
                 names.append(os.path.basename(getattr(f, "name", "upload.jpg")))
             except Exception as e:
                 st.warning(f"Falha ao abrir {getattr(f,'name','(sem nome)')}: {e}")
-    if urls_text.strip():
-        for line in urls_text.splitlines():
-            u = line.strip()
-            if not u:
-                continue
-            try:
-                img = fetch_url_image(u)
-                images.append(img)
-                # tenta extrair nome do fim da URL
-                base = os.path.basename(u.split("?")[0]) or f"url_{len(images)}.jpg"
-                names.append(base)
-            except Exception as e:
-                st.warning(f"Falha ao baixar {u}: {e}")
 
     if not images:
         st.warning("Envie pelo menos uma imagem.")
