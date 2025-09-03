@@ -1,13 +1,16 @@
-# streamlit_app.py (sem URLs)
+# streamlit_app.py
 import os
+import io
+import requests
 from PIL import Image
 import streamlit as st
 from huggingface_hub import hf_hub_download
 
-from model import load_model, infer_image_pil
+# seu módulo com o modelo/inferência
+from your_model import load_model, infer_image_pil
 
-st.set_page_config(page_title="Contagem de neurofibromas", layout="wide")
-st.title("Contagem de neurofibromas na Pele")
+st.set_page_config(page_title="Contagem de Neurofibromas", layout="wide")
+st.title("Contagem de Neurofibromas na Pele")
 
 # ======================== Sidebar (config) ========================
 with st.sidebar:
@@ -16,23 +19,38 @@ with st.sidebar:
     ckpt_file = st.text_input("HF filename", value="best_state_dict_only.pth")
     downsample = st.slider("downsample (mesmo do treino)", 1, 8, value=2, step=1)
     make_overlay = st.checkbox("Gerar imagem anotada (heatmap)", value=True)
+    st.caption("Se o repo do HF for privado, adicione **HF_TOKEN** em Settings → Secrets.")
 
 @st.cache_resource(show_spinner=True)
 def load_model_cached(repo_id: str, ckpt_file: str):
-    token = st.secrets.get("HF_TOKEN", None)  # None para repo público
+    """
+    Baixa o checkpoint do HF (usa HF_TOKEN se existir em st.secrets)
+    e carrega o modelo uma única vez (cache por instância).
+    """
+    token = st.secrets.get("HF_TOKEN", None)  # para repositórios privados use Secrets
     ckpt_path = hf_hub_download(repo_id=repo_id, filename=ckpt_file, token=token)
     model, device = load_model(ckpt_path, device="cpu")  # Streamlit Cloud roda em CPU
     return model, device, ckpt_path
 
-# ======================== Entradas (apenas upload) ========================
-st.markdown("Envie **uma ou mais imagens**.")
+def fetch_url_image(url: str) -> Image.Image:
+    r = requests.get(url, timeout=12)
+    r.raise_for_status()
+    return Image.open(io.BytesIO(r.content)).convert("RGB")
+
+# ======================== Entradas ========================
+st.markdown("Envie **uma ou mais imagens** ou cole **URLs** (uma por linha).")
 uploads = st.file_uploader(
     "Upload de imagens", type=["png", "jpg", "jpeg", "bmp", "webp", "tiff"],
     accept_multiple_files=True
 )
+urls_text = st.text_area(
+    "URLs (opcional)", height=80,
+    placeholder="https://exemplo.com/img1.jpg\nhttps://exemplo.com/img2.png"
+)
 
 # ======================== Botão principal ========================
 if st.button("Rodar Predição", type="primary"):
+    # Coleta imagens
     images, names = [], []
     if uploads:
         for f in uploads:
@@ -42,6 +60,18 @@ if st.button("Rodar Predição", type="primary"):
                 names.append(os.path.basename(getattr(f, "name", "upload.jpg")))
             except Exception as e:
                 st.warning(f"Falha ao abrir {getattr(f,'name','(sem nome)')}: {e}")
+    if urls_text.strip():
+        for line in urls_text.splitlines():
+            u = line.strip()
+            if not u:
+                continue
+            try:
+                img = fetch_url_image(u)
+                images.append(img)
+                base = os.path.basename(u.split("?")[0]) or f"url_{len(images)}.jpg"
+                names.append(base)
+            except Exception as e:
+                st.warning(f"Falha ao baixar {u}: {e}")
 
     if not images:
         st.warning("Envie pelo menos uma imagem.")
@@ -69,7 +99,7 @@ if st.button("Rodar Predição", type="primary"):
                     downsample=int(downsample),
                     return_overlay=make_overlay
                 )
-                count = max(0.0, float(count))
+                count = max(0.0, float(count))  # clamp para não-negativo
                 rows.append({"arquivo": name, "contagem": round(count, 1)})
                 total += count
                 if make_overlay and overlay_img is not None:
@@ -89,4 +119,4 @@ if st.button("Rodar Predição", type="primary"):
         st.subheader("Imagens anotadas")
         imgs = [im for _, im in annotated]
         caps = [nm for nm, _ in annotated]
-        st.image(imgs, caption=caps, use_container_width=True)
+        st.image(imgs, caption=caps, use_column_width=True)
