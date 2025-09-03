@@ -1,0 +1,13 @@
+streamlit
+pillow
+requests
+huggingface_hub
+
+numpy
+opencv-python-headless
+torch
+torchvision
+albumentations
+scipy
+scikit-learn
+tqdm
