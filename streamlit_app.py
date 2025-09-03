@@ -119,4 +119,4 @@ if st.button("Rodar Predição", type="primary"):
         st.subheader("Imagens anotadas")
         imgs = [im for _, im in annotated]
         caps = [nm for nm, _ in annotated]
-        st.image(imgs, caption=caps, use_column_width=True)
+        st.image(imgs, caption=caps, use_container_width=True)
